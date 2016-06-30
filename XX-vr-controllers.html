@@ -199,11 +199,15 @@ found in the LICENSE file.
         }
       }
 
-      function getPoseMatrix (out, pose) {
+      function getPoseMatrix (out, pose, isGamepad) {
         orientation = pose.orientation;
         position = pose.position;
         if (!orientation) { orientation = [0, 0, 0, 1]; }
-        if (!position) { position = [0, 0, 0]; }
+        if (!position) {
+          // If this is a gamepad without a pose set it out in front of us so
+          // we can see it.
+          position = isGamepad ? [0.1, -0.1, -0.5] : [0, 0, 0];
+        }
 
         if (vrDisplay.stageParameters) {
           mat4.fromRotationTranslation(out, orientation, position);
@@ -235,7 +239,7 @@ found in the LICENSE file.
           // Because this sample is done in standing space we need to apply
           // the same transformation to the gamepad pose as we did the
           // VRDisplay's pose.
-          getPoseMatrix(gamepadMat, gamepad.pose);
+          getPoseMatrix(gamepadMat, gamepad.pose, true);
 
           // Scaled down to from 1 meter to be something closer to the size of
           // a hand.
