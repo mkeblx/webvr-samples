@@ -154,6 +154,8 @@ found in the LICENSE file.
               vrPresentButton = VRSamplesUtil.addButton("Enter VR", "E", "media/icons/cardboard64.png", onVRRequestPresent);
 
             window.addEventListener('vrdisplaypresentchange', onVRPresentChange, false);
+            window.addEventListener('vrdisplayactivated', onVRRequestPresent, false);
+            window.addEventListener('vrdisplaydeactivated', onVRExitPresent, false);
 
             // Only use preserveDrawingBuffer if we have an external display to
             // mirror to.

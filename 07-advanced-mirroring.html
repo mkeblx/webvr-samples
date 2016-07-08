@@ -170,20 +170,13 @@ found in the LICENSE file.
               vrPresentButton = VRSamplesUtil.addButton("Enter VR", "E", "media/icons/cardboard64.png", onVRRequestPresent);
 
             window.addEventListener('vrdisplaypresentchange', onVRPresentChange, false);
+            window.addEventListener('vrdisplayactivated', onVRRequestPresent, false);
+            window.addEventListener('vrdisplaydeactivated', onVRExitPresent, false);
           } else {
             initWebGL();
             VRSamplesUtil.addInfo("WebVR supported, but no VRDisplays found.", 3000);
           }
         });
-
-        // These events fire when the user agent has had some indication that
-        // it would be appropariate to enter or exit VR presentation mode, such
-        // as the user putting on a headset and triggering a proximity sensor.
-        // You can inspect the `reason` property of the event to learn why the
-        // event was fired, but in this case we're going to always trust the
-        // event and enter or exit VR presentation mode when asked.
-        window.addEventListener('vrdisplayactivated', onVRRequestPresent, false);
-        window.addEventListener('vrdisplaydeactivated', onVRExitPresent, false);
       } else if (navigator.getVRDevices) {
         initWebGL();
         VRSamplesUtil.addError("Your browser supports WebVR but not the latest version. See <a href='http://webvr.info'>webvr.info</a> for more info.");
