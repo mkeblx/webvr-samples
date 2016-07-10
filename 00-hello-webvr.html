@@ -168,6 +168,10 @@ found in the LICENSE file.
         return vrElement;
       }
 
+      function eventFired(evt) {
+        VRSamplesUtil.addInfo("[" + evt.type + "] VR Display: " + evt.display.displayName + ", Reason: " + evt.reason, 3000);
+      }
+
       if (navigator.getVRDisplays) {
         // Enumerate the VRDisplays
         navigator.getVRDisplays().then(function (displays) {
@@ -179,6 +183,11 @@ found in the LICENSE file.
             document.body.appendChild(buildVRElement(displays[i]));
           }
         });
+
+        window.addEventListener("vrdisplayconnected", eventFired, false);
+        window.addEventListener("vrdisplaydisconnected", eventFired, false);
+        window.addEventListener("vrdisplayactivated", eventFired, false);
+        window.addEventListener("vrdisplaydeactivated", eventFired, false);
       } else if (navigator.getVRDevices) {
         VRSamplesUtil.addError("Your browser supports WebVR but not the latest version. See <a href='http://webvr.info'>webvr.info</a> for more info.");
       } else {

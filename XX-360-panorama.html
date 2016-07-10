@@ -114,6 +114,9 @@ found in the LICENSE file.
       }
 
       function onVRExitPresent () {
+        if (!vrDisplay.isPresenting)
+          return;
+
         vrDisplay.exitPresent().then(function () {
         }, function () {
           VRSamplesUtil.addError("exitPresent failed.", 2000);
