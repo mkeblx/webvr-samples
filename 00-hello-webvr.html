@@ -184,10 +184,12 @@ found in the LICENSE file.
           }
         });
 
-        window.addEventListener("vrdisplayconnected", eventFired, false);
-        window.addEventListener("vrdisplaydisconnected", eventFired, false);
-        window.addEventListener("vrdisplayactivated", eventFired, false);
-        window.addEventListener("vrdisplaydeactivated", eventFired, false);
+        window.addEventListener("vrdisplayconnect", eventFired, false);
+        window.addEventListener("vrdisplaydisconnect", eventFired, false);
+        window.addEventListener("vrdisplayactivate", eventFired, false);
+        window.addEventListener("vrdisplaydeactivate", eventFired, false);
+        window.addEventListener("vrdisplayblur", eventFired, false);
+        window.addEventListener("vrdisplayfocus", eventFired, false);
       } else if (navigator.getVRDevices) {
         VRSamplesUtil.addError("Your browser supports WebVR but not the latest version. See <a href='http://webvr.info'>webvr.info</a> for more info.");
       } else {
