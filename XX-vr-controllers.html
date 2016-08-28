@@ -82,7 +82,6 @@ found in the LICENSE file.
       var vrPresentButton = null;
       var orientation = [0, 0, 0, 1];
       var position = [0, 0, 0];
-      var lastVibration = 0;
 
       // ===================================================
       // WebGL scene setup. This code is not WebVR specific.
@@ -296,22 +295,16 @@ found in the LICENSE file.
             var gamepad = gamepads[i];
             // The array may contain undefined gamepads, so check for that as
             // well as a non-null pose.
-            if (gamepad && gamepad.pose) {
+            if (gamepad) {
+              if (gamepad.pose)
+                vrGamepads.push(gamepad);
 
-              vrGamepads.push(gamepad);
-
-              if ("vibrate" in gamepad) {
+              if ("haptics" in gamepad && gamepad.haptics.length > 0) {
                 for (var j = 0; j < gamepad.buttons.length; ++j) {
                   if (gamepad.buttons[j].pressed) {
-                    //gamepad.vibrate(1000);
-                    // Vibrate the gamepad relative to the amount the button is pressed.
-                    var vibrationDelay = (500 * (1.0 - gamepad.buttons[j].value)) + 100;
-
-                    if (t - lastVibration > vibrationDelay) {
-                      gamepad.vibrate(100);
-                      lastVibration = t;
-                    }
-
+                    // Vibrate the gamepad using to the value of the button as
+                    // the vibration intensity.
+                    gamepad.haptics[0].vibrate(gamepad.buttons[j].value, 100);
                     break;
                   }
                 }
