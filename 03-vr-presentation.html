@@ -73,6 +73,8 @@ found in the LICENSE file.
     <script src="js/vr-cube-sea.js"></script>
     <script src="js/vr-samples-util.js"></script>
 
+    <!-- Shim for migration from older version of WebVR. Shouldn't be necessary
+    for very long. -->
     <script src="js/webvr-1-1.js"></script>
   </head>
   <body>
@@ -86,8 +88,6 @@ found in the LICENSE file.
       var vrDisplay = null;
       var projectionMat = mat4.create();
       var viewMat = mat4.create();
-
-      var vrFrame = new VRFrame();
 
       var vrPresentButton = null;
 
@@ -174,6 +174,13 @@ found in the LICENSE file.
         navigator.getVRDisplays().then(function (displays) {
           if (displays.length > 0) {
             vrDisplay = displays[0];
+
+            // It's heighly reccommended that you set the near and far planes to
+            // something appropriate for your scene so the projection matricies
+            // WebVR produces have a well scaled depth buffer.
+            vrDisplay.depthNear = 0.1;
+            vrDisplay.depthFar = 1024.0;
+
             VRSamplesUtil.addButton("Reset Pose", "R", null, function () { vrDisplay.resetPose(); });
 
             // Generally, you want to wait until VR support is confirmed and
@@ -229,25 +236,7 @@ found in the LICENSE file.
       window.addEventListener("resize", onResize, false);
       onResize();
 
-      function renderSceneView (pose, eye) {
-        var orientation = pose.orientation;
-        var position = pose.position;
-        if (!orientation) { orientation = [0, 0, 0, 1]; }
-        if (!position) { position = [0, 0, 0]; }
-
-        if (eye)
-          mat4.perspectiveFromFieldOfView(projectionMat, eye.fieldOfView, 0.1, 1024.0);
-        else
-          mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
-
-        mat4.fromRotationTranslation(viewMat, orientation, position);
-        if (eye)
-          mat4.translate(viewMat, viewMat, eye.offset);
-        mat4.invert(viewMat, viewMat);
-
-        cubeSea.render(projectionMat, viewMat, stats);
-      }
-
+      var vrFrame = new VRFrame();
       function onAnimationFrame (t) {
         stats.begin();
 
@@ -270,20 +259,21 @@ found in the LICENSE file.
           if (vrDisplay.isPresenting) {
             // When presenting render a stereo view.
             gl.viewport(0, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            renderSceneView(pose, vrDisplay.getEyeParameters("left"));
+            cubeSea.render(vrFrame.leftEye.projectionMatrix, vrFrame.leftEye.viewMatrix, stats);
 
             gl.viewport(webglCanvas.width * 0.5, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            renderSceneView(pose, vrDisplay.getEyeParameters("right"));
+            cubeSea.render(vrFrame.rightEye.projectionMatrix, vrFrame.rightEye.viewMatrix, stats);
 
             // If we're currently presenting to the VRDisplay we need to
-            // explicitly indicate we're done rendering and inform the
-            // display which pose was used to render the current frame.
-            vrDisplay.submitFrame(pose);
+            // explicitly indicate we're done rendering.
+            vrDisplay.submitFrame();
           } else {
             // When not presenting render a mono view that still takes pose into
             // account.
             gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
-            renderSceneView(pose, null);
+            // It's best to use our own projection matrix in this case, but we can use the left eye's view matrix
+            mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
+            cubeSea.render(projectionMat, vrFrame.leftEye.viewMatrix, stats);
             stats.renderOrtho();
           }
         } else {

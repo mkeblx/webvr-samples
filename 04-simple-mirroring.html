@@ -59,6 +59,10 @@ found in the LICENSE file.
 
     <script src="js/vr-cube-sea.js"></script>
     <script src="js/vr-samples-util.js"></script>
+
+    <!-- Shim for migration from older version of WebVR. Shouldn't be necessary
+    for very long. -->
+    <script src="js/webvr-1-1.js"></script>
   </head>
   <body>
     <canvas id="webgl-canvas"></canvas>
@@ -199,25 +203,7 @@ found in the LICENSE file.
         }
       }
 
-      function renderSceneView (pose, eye) {
-        var orientation = pose.orientation;
-        var position = pose.position;
-        if (!orientation) { orientation = [0, 0, 0, 1]; }
-        if (!position) { position = [0, 0, 0]; }
-
-        if (eye)
-          mat4.perspectiveFromFieldOfView(projectionMat, eye.fieldOfView, 0.1, 1024.0);
-        else
-          mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
-
-        mat4.fromRotationTranslation(viewMat, orientation, position);
-        if (eye)
-          mat4.translate(viewMat, viewMat, eye.offset);
-        mat4.invert(viewMat, viewMat);
-
-        cubeSea.render(projectionMat, viewMat, stats);
-      }
-
+      var vrFrame = new VRFrame();
       function onAnimationFrame (t) {
         stats.begin();
 
@@ -226,19 +212,20 @@ found in the LICENSE file.
         if (vrDisplay) {
           vrDisplay.requestAnimationFrame(onAnimationFrame);
 
-          var pose = vrDisplay.getPose();
+          vrDisplay.updateFrame(vrFrame);
 
           if (vrDisplay.isPresenting) {
             gl.viewport(0, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            renderSceneView(pose, vrDisplay.getEyeParameters("left"));
+            cubeSea.render(vrFrame.leftEye.projectionMatrix, vrFrame.leftEye.viewMatrix, stats);
 
             gl.viewport(webglCanvas.width * 0.5, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            renderSceneView(pose, vrDisplay.getEyeParameters("right"));
+            cubeSea.render(vrFrame.rightEye.projectionMatrix, vrFrame.rightEye.viewMatrix, stats);
 
-            vrDisplay.submitFrame(pose);
+            vrDisplay.submitFrame();
           } else {
             gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
-            renderSceneView(pose, null);
+            mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
+            cubeSea.render(projectionMat, vrFrame.leftEye.viewMatrix, stats);
             stats.renderOrtho();
           }
         } else {
