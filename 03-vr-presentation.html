@@ -72,6 +72,8 @@ found in the LICENSE file.
 
     <script src="js/vr-cube-sea.js"></script>
     <script src="js/vr-samples-util.js"></script>
+
+    <script src="js/webvr-1-1.js"></script>
   </head>
   <body>
     <canvas id="webgl-canvas"></canvas>
@@ -84,6 +86,8 @@ found in the LICENSE file.
       var vrDisplay = null;
       var projectionMat = mat4.create();
       var viewMat = mat4.create();
+
+      var vrFrame = new VRFrame();
 
       var vrPresentButton = null;
 
@@ -260,7 +264,8 @@ found in the LICENSE file.
           // and call VRDisplay.submitFrame as early as possible after
           // retrieving the pose. Do any work for the frame that doesn't need
           // to know the pose earlier to ensure the lowest latency possible.
-          var pose = vrDisplay.getPose();
+          //var pose = vrDisplay.getPose();
+          vrDisplay.updateFrame(vrFrame);
 
           if (vrDisplay.isPresenting) {
             // When presenting render a stereo view.
