@@ -57,6 +57,10 @@ found in the LICENSE file.
 
     <script src="js/vr-panorama.js"></script>
     <script src="js/vr-samples-util.js"></script>
+
+    <!-- Shim for migration from older version of WebVR. Shouldn't be necessary
+    for very long. -->
+    <script src="js/webvr-1-1.js"></script>
   </head>
   <body>
     <canvas id="webgl-canvas"></canvas>
@@ -189,23 +193,10 @@ found in the LICENSE file.
         var orientation = pose.orientation;
         if (!orientation) { orientation = [0, 0, 0, 1]; }
         mat4.fromQuat(out, orientation);
+        mat4.invert(out, out);
       }
 
-      function renderSceneView (poseInMat, eye) {
-        if (eye) {
-          // FYI: When rendering a panorama do NOT offset the views by the IPD!
-          // That will make the viewer feel like their head is trapped in a tiny
-          // ball, which is usually not the desired effect.
-          mat4.perspectiveFromFieldOfView(projectionMat, eye.fieldOfView, 0.1, 1024.0);
-          mat4.invert(viewMat, poseInMat);
-        } else {
-          mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
-          mat4.invert(viewMat, poseInMat);
-        }
-
-        panorama.render(projectionMat, viewMat);
-      }
-
+      var vrFrame = new VRFrame();
       function onAnimationFrame (t) {
         stats.begin();
 
@@ -214,20 +205,26 @@ found in the LICENSE file.
         if (vrDisplay) {
           vrDisplay.requestAnimationFrame(onAnimationFrame);
 
-          var pose = vrDisplay.getPose();
-          getPoseMatrix(poseMat, pose);
+          vrDisplay.updateFrame(vrFrame);
+
+          // FYI: When rendering a panorama do NOT use view matricies directly!
+          // That will make the viewer feel like their head is trapped in a tiny
+          // ball, which is usually not the desired effect. Instead, render both
+          // eyes from a single viewpoint.
+          getPoseMatrix(viewMat, vrFrame.pose);
 
           if (vrDisplay.isPresenting) {
             gl.viewport(0, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            renderSceneView(poseMat, vrDisplay.getEyeParameters("left"));
+            panorama.render(vrFrame.leftEye.projectionMatrix, viewMat);
 
             gl.viewport(webglCanvas.width * 0.5, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            renderSceneView(poseMat, vrDisplay.getEyeParameters("right"));
+            panorama.render(vrFrame.rightEye.projectionMatrix, viewMat);
 
-            vrDisplay.submitFrame(pose);
+            vrDisplay.submitFrame();
           } else {
             gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
-            renderSceneView(poseMat, null);
+            mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
+            panorama.render(projectionMat, viewMat);
             stats.renderOrtho();
           }
         } else {

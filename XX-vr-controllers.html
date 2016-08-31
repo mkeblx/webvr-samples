@@ -62,6 +62,10 @@ found in the LICENSE file.
 
     <script src="js/vr-cube-island.js"></script>
     <script src="js/vr-samples-util.js"></script>
+
+    <!-- Shim for migration from older version of WebVR. Shouldn't be necessary
+    for very long. -->
+    <script src="js/webvr-1-1.js"></script>
   </head>
   <body>
     <canvas id="webgl-canvas"></canvas>
@@ -203,6 +207,18 @@ found in the LICENSE file.
         }
       }
 
+      function getStandingViewMatrix (out, view) {
+        if (vrDisplay.stageParameters) {
+          mat4.invert(out, vrDisplay.stageParameters.sittingToStandingTransform);
+          mat4.multiply(out, view, out);
+        } else {
+          mat4.identity(out);
+          mat4.translate(out, out, [0, PLAYER_HEIGHT, 0]);
+          mat4.invert(out, out);
+          mat4.multiply(out, view, out);
+        }
+      }
+
       function getPoseMatrix (out, pose, isGamepad) {
         orientation = pose.orientation;
         position = pose.position;
@@ -222,19 +238,10 @@ found in the LICENSE file.
         }
       }
 
-      function renderSceneView (poseInMat, gamepads, eye) {
-        if (eye) {
-          mat4.translate(viewMat, poseInMat, eye.offset);
-          mat4.perspectiveFromFieldOfView(projectionMat, eye.fieldOfView, 0.1, 1024.0);
-          mat4.invert(viewMat, viewMat);
-        } else {
-          mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
-          mat4.invert(viewMat, poseInMat);
-        }
+      function renderSceneView (projection, view, gamepads) {
+        cubeIsland.render(projection, view, stats);
 
-        cubeIsland.render(projectionMat, viewMat, stats);
-
-        debugGeom.bind(projectionMat, viewMat);
+        debugGeom.bind(projection, view);
 
         // Render every gamepad with a pose we found
         for (var i = 0; i < gamepads.length; ++i) {
@@ -279,6 +286,7 @@ found in the LICENSE file.
         }
       }
 
+      var vrFrame = new VRFrame();
       function onAnimationFrame (t) {
         stats.begin();
 
@@ -312,20 +320,23 @@ found in the LICENSE file.
             }
           }
 
-          var pose = vrDisplay.getPose();
-          getPoseMatrix(poseMat, pose);
+          vrDisplay.updateFrame(vrFrame);
 
           if (vrDisplay.isPresenting) {
             gl.viewport(0, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            renderSceneView(poseMat, vrGamepads, vrDisplay.getEyeParameters("left"));
+            getStandingViewMatrix(viewMat, vrFrame.leftEye.viewMatrix);
+            renderSceneView(vrFrame.leftEye.projectionMatrix, viewMat, vrGamepads);
 
             gl.viewport(webglCanvas.width * 0.5, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            renderSceneView(poseMat, vrGamepads, vrDisplay.getEyeParameters("right"));
+            getStandingViewMatrix(viewMat, vrFrame.rightEye.viewMatrix);
+            renderSceneView(vrFrame.rightEye.projectionMatrix, viewMat, vrGamepads);
 
-            vrDisplay.submitFrame(pose);
+            vrDisplay.submitFrame();
           } else {
             gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
-            renderSceneView(poseMat, vrGamepads, null);
+            mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
+            getStandingViewMatrix(viewMat, vrFrame.leftEye.viewMatrix);
+            renderSceneView(projectionMat, viewMat, vrFrame.pose);
             stats.renderOrtho();
           }
         } else {
