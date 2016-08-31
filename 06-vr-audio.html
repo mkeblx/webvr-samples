@@ -61,6 +61,10 @@ found in the LICENSE file.
     <script src="js/vr-cube-island.js"></script>
     <script src="js/vr-samples-util.js"></script>
     <script src="js/vr-audio-panner.js"></script>
+
+    <!-- Shim for migration from older version of WebVR. Shouldn't be necessary
+    for very long. -->
+    <script src="js/webvr-1-1.js"></script>
   </head>
   <body>
     <canvas id="webgl-canvas"></canvas>
@@ -75,8 +79,7 @@ found in the LICENSE file.
       var projectionMat = mat4.create();
       var poseMat = mat4.create();
       var viewMat = mat4.create();
-      var standingMat = mat4.create();
-      var standingPosition = vec3.create();
+      var tmpMat = mat4.create();
       var vrPresentButton = null;
 
 
@@ -267,37 +270,39 @@ found in the LICENSE file.
         }
       }
 
+      function getStandingViewMatrix (out, view) {
+        if (vrDisplay.stageParameters) {
+          mat4.invert(out, vrDisplay.stageParameters.sittingToStandingTransform);
+          mat4.multiply(out, view, out);
+        } else {
+          mat4.identity(out);
+          mat4.translate(out, out, [0, PLAYER_HEIGHT, 0]);
+          mat4.invert(out, out);
+          mat4.multiply(out, view, out);
+        }
+      }
+
+      // Generate a matrix from the pose, which will represent the center of the
+      // user's head.
       function getPoseMatrix (out, pose) {
         var orientation = pose.orientation;
         var position = pose.position;
         if (!orientation) { orientation = [0, 0, 0, 1]; }
         if (!position) { position = [0, 0, 0]; }
 
-        if (vrDisplay.stageParameters) {
-          mat4.fromRotationTranslation(out, orientation, position);
-          mat4.multiply(out, vrDisplay.stageParameters.sittingToStandingTransform, out);
-        } else {
-          vec3.add(standingPosition, position, [0, PLAYER_HEIGHT, 0]);
-          mat4.fromRotationTranslation(out, orientation, standingPosition);
-        }
+        mat4.fromRotationTranslation(tmpMat, orientation, position);
+        mat4.invert(tmpMat, tmpMat);
+        getStandingViewMatrix(out, tmpMat);
+        mat4.invert(out, out);
       }
 
-      function renderSceneView (poseInMat, eye) {
-        if (eye) {
-          mat4.translate(viewMat, poseInMat, eye.offset);
-          mat4.perspectiveFromFieldOfView(projectionMat, eye.fieldOfView, 0.1, 1024.0);
-          mat4.invert(viewMat, viewMat);
-        } else {
-          mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
-          mat4.invert(viewMat, poseInMat);
-        }
-
-        cubeIsland.render(projectionMat, viewMat, stats);
+      function renderSceneView (projection, view) {
+        cubeIsland.render(projection, view, stats);
 
         // Draw cubes at the position of each audio source.
         // (Red: Guitar, Green: Percussion, Blue: Drum)
         if (isAudioPannerReady) {
-          debugGeom.bind(projectionMat, viewMat);
+          debugGeom.bind(projection, view);
           debugGeom.drawCube(null, guitarSource.getPosition(), 0.1 + guitarSource.getCubeScale() * 0.5, [1, 0, 0, 1]);
           debugGeom.drawCube(null, percSource.getPosition(), 0.25 + percSource.getCubeScale() * 0.35, [0, 1, 0, 1]);
           debugGeom.drawCube(null, drumSource.getPosition(), 0.25 + drumSource.getCubeScale() * 0.35, [0, 0, 1, 1]);
@@ -329,6 +334,7 @@ found in the LICENSE file.
           };
         })();
 
+      var vrFrame = new VRFrame();
       function onAnimationFrame (t) {
         stats.begin();
 
@@ -337,24 +343,28 @@ found in the LICENSE file.
         if (vrDisplay) {
           vrDisplay.requestAnimationFrame(onAnimationFrame);
 
-          var pose = vrDisplay.getPose();
-          getPoseMatrix(poseMat, pose);
+          vrDisplay.updateFrame(vrFrame);
 
           if (vrDisplay.isPresenting) {
             gl.viewport(0, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            renderSceneView(poseMat, vrDisplay.getEyeParameters("left"));
+            getStandingViewMatrix(viewMat, vrFrame.leftEye.viewMatrix);
+            renderSceneView(vrFrame.leftEye.projectionMatrix, viewMat);
 
             gl.viewport(webglCanvas.width * 0.5, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            renderSceneView(poseMat, vrDisplay.getEyeParameters("right"));
+            getStandingViewMatrix(viewMat, vrFrame.rightEye.viewMatrix);
+            renderSceneView(vrFrame.rightEye.projectionMatrix, viewMat);
 
-            vrDisplay.submitFrame(pose);
+            vrDisplay.submitFrame();
           } else {
             gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
-            renderSceneView(poseMat, null);
+            mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
+            getStandingViewMatrix(viewMat, vrFrame.leftEye.viewMatrix);
+            renderSceneView(projectionMat, viewMat, vrFrame.pose);
             stats.renderOrtho();
           }
 
           if (isAudioPannerReady) {
+            getPoseMatrix(poseMat, vrFrame.pose);
             // Compute the listener position/direction.
             var listener = getListenerPositionDirection(poseMat);
 

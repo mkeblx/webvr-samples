@@ -14,31 +14,6 @@ if ('getVRDisplays' in navigator) {
     VRDisplay.prototype.depthFar = 10000.0;
   }
 
-  if(!("setCoordinateSpace" in VRDisplay.prototype)) {
-    VRDisplay.prototype.__coordinateSpace = "absolute";
-    VRDisplay.prototype.getSupportedCoordinateSpaces = function(space) {
-      var spaces = ["absolute"];
-      if (this.stageParameters) {
-        spaces.push("standing");
-      }
-      return spaces;
-    };
-
-    VRDisplay.prototype.getCoordinateSpace = function() {
-      return this.__coordinateSpace;
-    };
-
-    VRDisplay.prototype.setCoordinateSpace = function(space) {
-      if (space == "absolute") {
-        this.coordinateSpace = space;
-      } else if (space == "standing" && this.stageParameters) {
-        this.__currentSpace = space;
-      } else {
-        console.error("Unsupported coordinate space \"" + space + "\"");
-      }
-    };
-  }
-
   // If the browser has a WebVR implementation but does not include the 1.1
   // functionality patch it with JS.
   if(!('VRFrame' in window)) {
@@ -50,15 +25,7 @@ if ('getVRDisplays' in navigator) {
     window.VRFrame = function() {
       this.leftEye = new VREyeTransform();
       this.rightEye = new VREyeTransform();
-      this.pose = {
-        timestamp: 0.0,
-        orientation: new Float32Array(4),
-        position: new Float32Array(3),
-        linearVelocity: new Float32Array(3),
-        linearAcceleration: new Float32Array(3),
-        angularVelocity: new Float32Array(3),
-        angularAcceleration: new Float32Array(3),
-      };
+      this.pose = null;
     };
 
     VRDisplay.prototype.updateFrame = (function() {
@@ -249,9 +216,6 @@ if ('getVRDisplays' in navigator) {
 
         mat4_fromRotationTranslation(eye.viewMatrix, orientation, position);
         mat4_translate(eye.viewMatrix, eye.viewMatrix, parameters.offset);
-        if (vrDisplay.__coordinateSpace == "standing") {
-          mat4_multiply(eye.viewMatrix, vrDisplay.stageParameters.sittingToStandingTransform, eye.viewMatrix);
-        }
         mat4_invert(eye.viewMatrix, eye.viewMatrix);
       }
 
@@ -260,15 +224,7 @@ if ('getVRDisplays' in navigator) {
         if (!pose)
           return false;
 
-        // This needs to be done as a copy. The app may hold onto pointers to the
-        // individual elements of the pose expecting them to be updated.
-        vrFrame.pose.timestamp = pose.timestamp;
-        vrFrame.pose.orientation.set(pose.orientation);
-        vrFrame.pose.position.set(pose.position);
-        vrFrame.pose.linearVelocity.set(pose.linearVelocity);
-        vrFrame.pose.linearAcceleration.set(pose.linearAcceleration);
-        vrFrame.pose.angularVelocity.set(pose.angularVelocity);
-        vrFrame.pose.angularAcceleration.set(pose.angularAcceleration);
+        vrFrame.pose = pose;
 
         updateEyeTransform(vrFrame.leftEye, pose, this.getEyeParameters("left"), this);
         updateEyeTransform(vrFrame.rightEye, pose, this.getEyeParameters("right"), this);

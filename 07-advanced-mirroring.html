@@ -60,6 +60,10 @@ found in the LICENSE file.
 
     <script src="js/vr-cube-island.js"></script>
     <script src="js/vr-samples-util.js"></script>
+
+    <!-- Shim for migration from older version of WebVR. Shouldn't be necessary
+    for very long. -->
+    <script src="js/webvr-1-1.js"></script>
   </head>
   <body>
     <canvas id="webgl-canvas"></canvas>
@@ -74,7 +78,7 @@ found in the LICENSE file.
       var projectionMat = mat4.create();
       var viewMat = mat4.create();
       var poseMat = mat4.create();
-      var standingPosition = vec3.create();
+      var tmpMat = mat4.create();
       var vrPresentButton = null;
       var orientation = [0, 0, 0, 1];
       var position = [0, 0, 0];
@@ -201,35 +205,31 @@ found in the LICENSE file.
         }
       }
 
+      function getStandingViewMatrix (out, view) {
+        if (vrDisplay.stageParameters) {
+          mat4.invert(out, vrDisplay.stageParameters.sittingToStandingTransform);
+          mat4.multiply(out, view, out);
+        } else {
+          mat4.identity(out);
+          mat4.translate(out, out, [0, PLAYER_HEIGHT, 0]);
+          mat4.invert(out, out);
+          mat4.multiply(out, view, out);
+        }
+      }
+
       function getPoseMatrix (out, pose) {
         orientation = pose.orientation;
         position = pose.position;
         if (!orientation) { orientation = [0, 0, 0, 1]; }
         if (!position) { position = [0, 0, 0]; }
 
-        if (vrDisplay.stageParameters) {
-          mat4.fromRotationTranslation(out, orientation, position);
-          mat4.multiply(out, vrDisplay.stageParameters.sittingToStandingTransform, out);
-        } else {
-          vec3.add(standingPosition, position, [0, PLAYER_HEIGHT, 0]);
-          mat4.fromRotationTranslation(out, orientation, standingPosition);
-        }
+        mat4.fromRotationTranslation(tmpMat, orientation, position);
+        mat4.invert(tmpMat, tmpMat);
+        getStandingViewMatrix(out, tmpMat);
+        mat4.invert(out, out);
       }
 
-      function renderSceneView (poseInMat, eye) {
-        if (eye) {
-          mat4.translate(viewMat, poseInMat, eye.offset);
-          mat4.perspectiveFromFieldOfView(projectionMat, eye.fieldOfView, 0.1, 1024.0);
-          mat4.invert(viewMat, viewMat);
-        } else {
-          mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
-          mat4.invert(viewMat, poseInMat);
-        }
-
-        cubeIsland.render(projectionMat, viewMat, stats);
-      }
-
-      function renderSceneThirdPersonView (poseInMat) {
+      function renderSceneThirdPersonView (pose) {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
         mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
@@ -243,17 +243,19 @@ found in the LICENSE file.
         cubeIsland.render(projectionMat, viewMat, stats);
 
         // Render a debug view of the headset's position
-        if (poseInMat) {
-          mat4.getTranslation(standingPosition, poseInMat);
-          mat4.getRotation(orientation, poseInMat);
+        if (pose) {
+          getPoseMatrix(poseMat, pose);
+          mat4.getTranslation(position, poseMat);
+          mat4.getRotation(orientation, poseMat);
 
           debugGeom.bind(projectionMat, viewMat);
-          debugGeom.drawCube(orientation, standingPosition, 0.2, [0, 1, 0, 1]);
+          debugGeom.drawCube(orientation, position, 0.2, [0, 1, 0, 1]);
         }
 
         stats.renderOrtho();
       }
 
+      var vrFrame = new VRFrame();
       function onAnimationFrame (t) {
         stats.begin();
 
@@ -262,18 +264,19 @@ found in the LICENSE file.
         if (vrDisplay) {
           vrDisplay.requestAnimationFrame(onAnimationFrame);
 
-          var pose = vrDisplay.getPose();
-          getPoseMatrix(poseMat, pose);
+          vrDisplay.updateFrame(vrFrame);
 
           if(vrDisplay.isPresenting) {
             gl.viewport(0, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            renderSceneView(poseMat, vrDisplay.getEyeParameters("left"));
+            getStandingViewMatrix(viewMat, vrFrame.leftEye.viewMatrix);
+            cubeIsland.render(vrFrame.leftEye.projectionMatrix, viewMat, stats);
 
             gl.viewport(webglCanvas.width * 0.5, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            renderSceneView(poseMat, vrDisplay.getEyeParameters("right"));
+            getStandingViewMatrix(viewMat, vrFrame.rightEye.viewMatrix);
+            cubeIsland.render(vrFrame.rightEye.projectionMatrix, viewMat, stats);
 
             // VRDisplay.submitFrame
-            vrDisplay.submitFrame(pose);
+            vrDisplay.submitFrame();
 
             // If we have an external display we can render a different version
             // of the scene entirely after calling submitFrame and it will be
@@ -281,11 +284,13 @@ found in the LICENSE file.
             // so this technique should only be used when it will not interfere
             // with the performance of the VR rendering.
             if (vrDisplay.capabilities.hasExternalDisplay) {
-              renderSceneThirdPersonView(poseMat);
+              renderSceneThirdPersonView(vrFrame.pose);
             }
           } else {
             gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
-            renderSceneView(poseMat, null);
+            mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
+            getStandingViewMatrix(viewMat, vrFrame.leftEye.viewMatrix);
+            cubeIsland.render(projectionMat, viewMat, stats);
           }
         } else {
           window.requestAnimationFrame(onAnimationFrame);

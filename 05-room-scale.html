@@ -77,10 +77,7 @@ found in the LICENSE file.
       var vrDisplay = null;
       var projectionMat = mat4.create();
       var viewMat = mat4.create();
-      var standingPosition = vec3.create();
       var vrPresentButton = null;
-      var orientation = [0, 0, 0, 1];
-      var position = [0, 0, 0];
 
       // ===================================================
       // WebGL scene setup. This code is not WebVR specific.
@@ -165,14 +162,6 @@ found in the LICENSE file.
 
             initWebGL(true);
 
-            // If it's supported tell the VRDisplay to report it's matrices in
-            // standing space.
-            if (vrDisplay.getSupportedCoordinateSpaces().lastIndexOf("standing") != -1) {
-              vrDisplay.setCoordinateSpace("standing");
-            } else {
-              VRSamplesUtil.addInfo("VRDisplay does not advertise support for standing space", 3000);
-            }
-
             if (vrDisplay.stageParameters &&
                 vrDisplay.stageParameters.sizeX > 0 &&
                 vrDisplay.stageParameters.sizeZ > 0) {
@@ -228,31 +217,36 @@ found in the LICENSE file.
       // Get a matrix for the pose that takes into account the stageParameters
       // if we have them, and otherwise adjusts the position to ensure we're
       // not stuck in the floor.
-      function getStandingViewMatrix (out, viewMatrix) {
-        if (vrDisplay.getCoordinateSpace() != "standing") {
-          // If standing space isn't supported you'll want to translate the view
-          // to compensate for the scene floor being at Y=0. Ideally this should
-          // match the user's height (you may want to make it configurable). For
-          // this demo we'll just assume all human beings are 1.65 meters
-          // (~5.4ft) tall.
+      function getStandingViewMatrix (out, view) {
+        if (vrDisplay.stageParameters) {
+          // If the headset provides stageParameters use the
+          // sittingToStandingTransform to transform the view matrix into a
+          // space where the floor in the center of the users play space is the
+          // origin.
+          mat4.invert(out, vrDisplay.stageParameters.sittingToStandingTransform);
+          mat4.multiply(out, view, out);
+        } else {
+          // Otherwise you'll want to translate the view to compensate for the
+          // scene floor being at Y=0. Ideally this should match the user's
+          // height (you may want to make it configurable). For this demo we'll
+          // just assume all human beings are 1.65 meters (~5.4ft) tall.
           mat4.identity(out);
           mat4.translate(out, out, [0, PLAYER_HEIGHT, 0]);
           mat4.invert(out, out);
-          mat4.multiply(out, viewMatrix, out);
-        } else {
-          // If standing space is supported use the view matrix directly.
-          mat4.copy(out, viewMatrix);
+          mat4.multiply(out, view, out);
         }
       }
 
-      function renderScene (projection, view, pose) {
+      function renderSceneView (projection, view, pose) {
         cubeIsland.render(projection, view, stats);
 
         // For fun, draw a blue cube where the players head would have been if
         // we weren't taking the stageParameters into account. It'll start in
         // the center of the floor.
-        var orientation = pose.orientation || [0, 0, 0, 1];
-        var position = pose.position || [0, 0, 0];
+        var orientation = pose.orientation;
+        var position = pose.position;
+        if (!orientation) { orientation = [0, 0, 0, 1]; }
+        if (!position) { position = [0, 0, 0]; }
         debugGeom.bind(projection, view);
         debugGeom.drawCube(orientation, position, 0.2, [0, 0, 1, 1]);
       }
@@ -267,21 +261,22 @@ found in the LICENSE file.
           vrDisplay.requestAnimationFrame(onAnimationFrame);
 
           vrDisplay.updateFrame(vrFrame);
+
           if (vrDisplay.isPresenting) {
             gl.viewport(0, 0, webglCanvas.width * 0.5, webglCanvas.height);
             getStandingViewMatrix(viewMat, vrFrame.leftEye.viewMatrix);
-            renderScene(vrFrame.leftEye.projectionMatrix, viewMat, vrFrame.pose);
+            renderSceneView(vrFrame.leftEye.projectionMatrix, viewMat, vrFrame.pose);
 
             gl.viewport(webglCanvas.width * 0.5, 0, webglCanvas.width * 0.5, webglCanvas.height);
             getStandingViewMatrix(viewMat, vrFrame.rightEye.viewMatrix);
-            renderScene(vrFrame.rightEye.projectionMatrix, viewMat, vrFrame.pose);
+            renderSceneView(vrFrame.rightEye.projectionMatrix, viewMat, vrFrame.pose);
 
             vrDisplay.submitFrame();
           } else {
             gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
             mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
             getStandingViewMatrix(viewMat, vrFrame.leftEye.viewMatrix);
-            renderScene(projectionMat, viewMat, vrFrame.pose);
+            renderSceneView(projectionMat, viewMat, vrFrame.pose);
             stats.renderOrtho();
           }
         } else {
