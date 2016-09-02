@@ -52,6 +52,10 @@ found in the LICENSE file.
     <!-- End sample polyfill enabling logic -->
 
     <script src="js/vr-samples-util.js"></script>
+
+    <!-- Shim for migration from older version of WebVR. Shouldn't be necessary
+    for very long. -->
+    <script src="js/webvr-1-1.js"></script>
   </head>
   <body>
     <script>
@@ -121,12 +125,13 @@ found in the LICENSE file.
 
         var memberUL = buildMemberList(vrDisplay, 0);
 
-        var pose = vrDisplay.getPose();
-        var poseLI = document.createElement("li");
-        poseLI.innerHTML = "<b>getPose():</b>";
-        var poseUL = buildMemberList(pose);
-        poseLI.appendChild(poseUL);
-        memberUL.appendChild(poseLI);
+        var frameData = new VRFrameData();
+        vrDisplay.getCurrentFrameData(frameData);
+        var frameDataLI = document.createElement("li");
+        frameDataLI.innerHTML = "<b>getCurrentFrameData():</b>";
+        var frameDataUL = buildMemberList(frameData);
+        frameDataLI.appendChild(frameDataUL);
+        memberUL.appendChild(frameDataLI);
 
         var leftEye = vrDisplay.getEyeParameters("left");
         var leftEyeLI = document.createElement("li");
@@ -146,10 +151,10 @@ found in the LICENSE file.
         function onAnimationFrame () {
           vrDisplay.requestAnimationFrame(onAnimationFrame);
 
-          pose = vrDisplay.getPose();
-          poseLI.removeChild(poseUL);
-          poseUL = buildMemberList(pose);
-          poseLI.appendChild(poseUL);
+          vrDisplay.getCurrentFrameData(frameData);
+          frameDataLI.removeChild(frameDataUL);
+          frameDataUL = buildMemberList(frameData);
+          frameDataLI.appendChild(frameDataUL);
 
           leftEye = vrDisplay.getEyeParameters("left");
           leftEyeLI.removeChild(leftEyeUL);

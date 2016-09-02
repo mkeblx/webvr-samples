@@ -155,6 +155,9 @@ found in the LICENSE file.
         navigator.getVRDisplays().then(function (displays) {
           if (displays.length > 0) {
             vrDisplay = displays[0];
+            vrDisplay.depthNear = 0.1;
+            vrDisplay.depthFar = 1024.0;
+
             VRSamplesUtil.addButton("Reset Pose", "R", null, function () { vrDisplay.resetPose(); });
 
             if (vrDisplay.capabilities.canPresent)
@@ -203,7 +206,7 @@ found in the LICENSE file.
         }
       }
 
-      var vrFrame = new VRFrame();
+      var frameData = new VRFrameData();
       function onAnimationFrame (t) {
         stats.begin();
 
@@ -212,20 +215,20 @@ found in the LICENSE file.
         if (vrDisplay) {
           vrDisplay.requestAnimationFrame(onAnimationFrame);
 
-          vrDisplay.updateFrame(vrFrame);
+          vrDisplay.getCurrentFrameData(frameData);
 
           if (vrDisplay.isPresenting) {
             gl.viewport(0, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            cubeSea.render(vrFrame.leftEye.projectionMatrix, vrFrame.leftEye.viewMatrix, stats);
+            cubeSea.render(frameData.leftProjectionMatrix, frameData.leftViewMatrix, stats);
 
             gl.viewport(webglCanvas.width * 0.5, 0, webglCanvas.width * 0.5, webglCanvas.height);
-            cubeSea.render(vrFrame.rightEye.projectionMatrix, vrFrame.rightEye.viewMatrix, stats);
+            cubeSea.render(frameData.rightProjectionMatrix, frameData.rightViewMatrix, stats);
 
             vrDisplay.submitFrame();
           } else {
             gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
             mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
-            cubeSea.render(projectionMat, vrFrame.leftEye.viewMatrix, stats);
+            cubeSea.render(projectionMat, frameData.leftViewMatrix, stats);
             stats.renderOrtho();
           }
         } else {

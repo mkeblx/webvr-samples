@@ -17,18 +17,15 @@ if ('getVRDisplays' in navigator) {
   // If the browser has a WebVR implementation but does not include the 1.1
   // functionality patch it with JS.
   if(!('VRFrame' in window)) {
-    window.VREyeTransform = function() {
-      this.projectionMatrix = new Float32Array(16);
-      this.viewMatrix = new Float32Array(16);
-    };
-
-    window.VRFrame = function() {
-      this.leftEye = new VREyeTransform();
-      this.rightEye = new VREyeTransform();
+    window.VRFrameData = function() {
+      this.leftProjectionMatrix = new Float32Array(16);
+      this.leftViewMatrix = new Float32Array(16);
+      this.rightProjectionMatrix = new Float32Array(16);
+      this.rightViewMatrix = new Float32Array(16);
       this.pose = null;
     };
 
-    VRDisplay.prototype.updateFrame = (function() {
+    VRDisplay.prototype.getCurrentFrameData = (function() {
       // Borrowed from glMatrix.
       function mat4_perspectiveFromFieldOfView(out, fov, near, far) {
         var upTan = Math.tan(fov.upDegrees * Math.PI/180.0),
@@ -206,28 +203,33 @@ if ('getVRDisplays' in navigator) {
       var defaultOrientation = new Float32Array([0, 0, 0, 1]);
       var defaultPosition = new Float32Array([0, 0, 0]);
 
-      function updateEyeTransform(eye, pose, parameters, vrDisplay) {
-        mat4_perspectiveFromFieldOfView(eye.projectionMatrix, parameters.fieldOfView, vrDisplay.depthNear, vrDisplay.depthFar);
+      function updateEyeMatrices(projection, view, pose, parameters, vrDisplay) {
+        mat4_perspectiveFromFieldOfView(projection, parameters.fieldOfView, vrDisplay.depthNear, vrDisplay.depthFar);
 
         var orientation = pose.orientation;
         var position = pose.position;
         if (!orientation) { orientation = defaultOrientation; }
         if (!position) { position = defaultPosition; }
 
-        mat4_fromRotationTranslation(eye.viewMatrix, orientation, position);
-        mat4_translate(eye.viewMatrix, eye.viewMatrix, parameters.offset);
-        mat4_invert(eye.viewMatrix, eye.viewMatrix);
+        mat4_fromRotationTranslation(view, orientation, position);
+        mat4_translate(view, view, parameters.offset);
+        mat4_invert(view, view);
       }
 
-      return function(vrFrame) {
+      return function(frameData) {
         var pose = this.getPose();
         if (!pose)
           return false;
 
-        vrFrame.pose = pose;
+        frameData.pose = pose;
+        frameData.timestamp = pose.timestamp;
 
-        updateEyeTransform(vrFrame.leftEye, pose, this.getEyeParameters("left"), this);
-        updateEyeTransform(vrFrame.rightEye, pose, this.getEyeParameters("right"), this);
+        updateEyeMatrices(
+            frameData.leftProjectionMatrix, frameData.leftViewMatrix,
+            pose, this.getEyeParameters("left"), this);
+        updateEyeMatrices(
+            frameData.rightProjectionMatrix, frameData.rightViewMatrix,
+            pose, this.getEyeParameters("right"), this);
 
         return true;
       };

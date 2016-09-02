@@ -53,6 +53,10 @@ found in the LICENSE file.
 
     <script src="js/vr-cube-sea.js"></script>
     <script src="js/vr-samples-util.js"></script>
+
+    <!-- Shim for migration from older version of WebVR. Shouldn't be necessary
+    for very long. -->
+    <script src="js/webvr-1-1.js"></script>
   </head>
   <body>
     <canvas id="webgl-canvas"></canvas>
@@ -63,7 +67,7 @@ found in the LICENSE file.
 
       var vrDisplay = null;
       var projectionMat = mat4.create();
-      var viewMat = mat4.create();
+      var identityMat = mat4.create();
 
       // ===================================================
       // WebGL scene setup. This code is not WebVR specific.
@@ -113,17 +117,12 @@ found in the LICENSE file.
       }
 
       // Renders the scene from the viewpoint of the given eye and pose.
-      function renderEyeView (pose, eye) {
-        var orientation = pose.orientation;
-        var position = pose.position;
-        if (!orientation) { orientation = [0, 0, 0, 1]; }
-        if (!position) { position = [0, 0, 0]; }
-
+      function renderEyeView (projectionMatrix, viewMatrix) {
         // Now that we're rendering for a specific eye, we need to use the FOV
         // for that eye to generate the projection matrix. glMatrix has a
         // function specifically for this, but if you're using a different
         // library the algorithm needed is defined in the WebVR spec.
-        mat4.perspectiveFromFieldOfView(projectionMat, eye.fieldOfView, 0.1, 1024.0);
+        mat4.perspectiveFromFieldOfView(projectionMatrix, eye.fieldOfView, 0.1, 1024.0);
 
         // Same matrix creation as last time, but done in an intermediate matrix
         // so that it can be multiplied by the eye offset matrix.
@@ -135,10 +134,10 @@ found in the LICENSE file.
 
         mat4.invert(viewMat, viewMat);
 
-        // Render the scene for this eye.
-        cubeSea.render(projectionMat, viewMat, stats);
+        
       }
 
+      var frameData = new VRFrameData();
       function onAnimationFrame (t) {
         window.requestAnimationFrame(onAnimationFrame);
 
@@ -148,24 +147,23 @@ found in the LICENSE file.
 
         if (vrDisplay) {
           // When a VR display is available, render a stereo view of the scene
-          // based on the display's pose.
-          var pose = vrDisplay.getPose();
+          // based on the display's current matrices.
+
+          // VRFrameData contains the projection and view matrices each eye
+          // should be rendered with. These values change from frame to
+          // frame, so don't attempt to cache them.
+          vrDisplay.getCurrentFrameData(frameData);
 
           // For each eye we'll adjust the viewport to only render to half the
           // canvas, which will give us the "split screen" output that we want.
 
-          // VRDevice.getEyeParameters gets the current parameters each eye
-          // should be rendered with. These values may change from frame to
-          // frame, so the best practice is to query them each time instead of
-          // caching them.
-
           // Left eye.
           gl.viewport(0, 0, webglCanvas.width * 0.5, webglCanvas.height);
-          renderEyeView(pose, vrDisplay.getEyeParameters("left"));
+          cubeSea.render(frameData.leftProjectionMatrix, frameData.leftViewMatrix, stats);
 
           // Right eye.
           gl.viewport(webglCanvas.width * 0.5, 0, webglCanvas.width * 0.5, webglCanvas.height);
-          renderEyeView(pose, vrDisplay.getEyeParameters("right"));
+          cubeSea.render(frameData.rightProjectionMatrix, frameData.rightViewMatrix, stats);
 
           gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
           stats.renderOrtho();
@@ -173,8 +171,7 @@ found in the LICENSE file.
           // No VRDisplay found. Render a normal mono view to the entire canvas.
           gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
           mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width/webglCanvas.height, 0.1, 1024.0);
-          mat4.identity(viewMat);
-          cubeSea.render(projectionMat, viewMat, stats);
+          cubeSea.render(projectionMat, identityMat, stats);
           stats.renderOrtho();
         }
 

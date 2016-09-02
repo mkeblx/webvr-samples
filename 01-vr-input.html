@@ -54,6 +54,10 @@ found in the LICENSE file.
 
     <script src="js/vr-cube-sea.js"></script>
     <script src="js/vr-samples-util.js"></script>
+
+    <!-- Shim for migration from older version of WebVR. Shouldn't be necessary
+    for very long. -->
+    <script src="js/webvr-1-1.js"></script>
   </head>
   <body>
     <canvas id="webgl-canvas"></canvas>
@@ -64,7 +68,7 @@ found in the LICENSE file.
 
       var vrDisplay = null;
       var projectionMat = mat4.create();
-      var viewMat = mat4.create();
+      var identityMat = mat4.create();
 
       // ===================================================
       // WebGL scene setup. This code is not WebVR specific.
@@ -133,6 +137,11 @@ found in the LICENSE file.
         VRSamplesUtil.addError("Your browser does not support WebVR. See <a href='http://webvr.info'>webvr.info</a> for assistance.");
       }
 
+      // This object will be populated with the VRDisplay's pose and matricies
+      // every frame. We allocate it once here to avoid unnecessary garbage
+      // creation per frame.
+      var frameData = new VRFrameData();
+
       // Main rendering loop
       function onAnimationFrame () {
         stats.begin();
@@ -145,39 +154,15 @@ found in the LICENSE file.
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         if (vrDisplay) {
-          // If a VRDisplay was found, create a matrix based on its pose.
-          var pose = vrDisplay.getPose();
+          // If a VRDisplay was found, query the matrices for it's current pose.
+          vrDisplay.getCurrentFrameData(frameData);
 
-          // The pose and orientation may be null if the VRDisplay cannot report
-          // them for some reason. In that case, use reasonable defaults:
-          var orientation = pose.orientation;
-          var position = pose.position;
-          if (!orientation) { orientation = [0, 0, 0, 1]; }
-          if (!position) { position = [0, 0, 0]; }
-
-          // Create a Model/View matrix from the orientation and position.
-          // From the glMatrix docs:
-          // Creates a matrix from a quaternion rotation and vector translation
-          // This is equivalent to (but much faster than):
-          //
-          //     mat4.identity(dest);
-          //     mat4.translate(dest, vec);
-          //     var quatMat = mat4.create();
-          //     quat4.toMat4(quat, quatMat);
-          //     mat4.multiply(dest, quatMat);
-          mat4.fromRotationTranslation(viewMat, orientation, position);
-
-          // Invert because we're describing the camera's position in space,
-          // so the objects in the scene need to move "in reverse" to get the
-          // appropriate effect.
-          mat4.invert(viewMat, viewMat);
+          // Render the scene using the view matrix for one of the eyes.
+          cubeSea.render(projectionMat, frameData.leftViewMatrix, stats);
         } else {
-          // If no VRDisplay was found, create a matrix using a fallback method.
-          mat4.identity(viewMat);
+          // If no VRDisplay was found render the scene using an identity matrix.
+          cubeSea.render(projectionMat, identityMat, stats);
         }
-
-        // Render the scene using the matrix.
-        cubeSea.render(projectionMat, viewMat, stats);
 
         // Render the FPS counter.
         stats.renderOrtho();
