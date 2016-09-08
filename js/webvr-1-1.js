@@ -2,10 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-
+// Installs a shim that emulates functionality from the WebVR "1.1" spec if the
+// browser only exposes WebVR "1.0".
 if ('getVRDisplays' in navigator) {
-  // A lot of Chrome builds to date don't have these properties, even though
-  // They're in the WebVR 1.0 spec. They're more necessary for 1.1.
+
+  // A lot of Chrome builds to date don't have depthNear and depthFar, even
+  // though they're in the WebVR 1.0 spec. They're more necessary in 1.1.
   if(!("depthNear" in VRDisplay.prototype)) {
     VRDisplay.prototype.depthNear = 0.01;
   }
@@ -16,7 +18,7 @@ if ('getVRDisplays' in navigator) {
 
   // If the browser has a WebVR implementation but does not include the 1.1
   // functionality patch it with JS.
-  if(!('VRFrame' in window)) {
+  if(!('VRFrameData' in window)) {
     window.VRFrameData = function() {
       this.leftProjectionMatrix = new Float32Array(16);
       this.leftViewMatrix = new Float32Array(16);
