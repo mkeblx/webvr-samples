@@ -134,7 +134,7 @@ found in the LICENSE file.
 
         mat4.invert(viewMat, viewMat);
 
-        
+
       }
 
       var frameData = new VRFrameData();
@@ -152,7 +152,7 @@ found in the LICENSE file.
           // VRFrameData contains the projection and view matrices each eye
           // should be rendered with. These values change from frame to
           // frame, so don't attempt to cache them.
-          vrDisplay.getCurrentFrameData(frameData);
+          vrDisplay.getFrameData(frameData);
 
           // For each eye we'll adjust the viewport to only render to half the
           // canvas, which will give us the "split screen" output that we want.

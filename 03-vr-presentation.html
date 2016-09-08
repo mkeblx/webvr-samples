@@ -254,7 +254,7 @@ found in the LICENSE file.
           // retrieving the pose. Do any work for the frame that doesn't need
           // to know the pose earlier to ensure the lowest latency possible.
           //var pose = vrDisplay.getPose();
-          vrDisplay.getCurrentFrameData(frameData);
+          vrDisplay.getFrameData(frameData);
 
           if (vrDisplay.isPresenting) {
             // When presenting render a stereo view.

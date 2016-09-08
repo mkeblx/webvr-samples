@@ -25,7 +25,7 @@ if ('getVRDisplays' in navigator) {
       this.pose = null;
     };
 
-    VRDisplay.prototype.getCurrentFrameData = (function() {
+    VRDisplay.prototype.getFrameData = (function() {
       // Borrowed from glMatrix.
       function mat4_perspectiveFromFieldOfView(out, fov, near, far) {
         var upTan = Math.tan(fov.upDegrees * Math.PI/180.0),
