@@ -46,7 +46,12 @@ found in the LICENSE file.
     <script src="js/third-party/wglu/wglu-url.js"></script>
     <script>
       // Dynamically turn the polyfill on if requested by the query args.
-      if (WGLUUrl.getBool('polyfill', false)) { InitializeWebVRPolyfill(); }
+      if (WGLUUrl.getBool('polyfill', false)) {
+        InitializeWebVRPolyfill();
+      } else {
+        // Shim for migration from older version of WebVR. Shouldn't be necessary for very long.
+        InitializeSpecShim();
+      }
     </script>
     <!-- End sample polyfill enabling logic -->
 
@@ -57,10 +62,6 @@ found in the LICENSE file.
 
     <script src="js/vr-panorama.js"></script>
     <script src="js/vr-samples-util.js"></script>
-
-    <!-- Shim for migration from older version of WebVR. Shouldn't be necessary
-    for very long. -->
-    <script src="js/webvr-1-1.js"></script>
   </head>
   <body>
     <canvas id="webgl-canvas"></canvas>
