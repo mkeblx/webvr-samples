@@ -53,7 +53,6 @@ found in the LICENSE file.
         // Polyfill optimizations
         DIRTY_SUBMIT_FRAME_BINDINGS: true,
         BUFFER_SCALE: 0.75,
-        FORCE_ENABLE_VR: true
       };
     </script>
     <script src="js/third-party/webvr-polyfill.js"></script>
@@ -87,6 +86,7 @@ found in the LICENSE file.
       "use strict";
 
       var vrDisplay = null;
+      var frameData = null;
       var projectionMat = mat4.create();
       var viewMat = mat4.create();
 
@@ -172,6 +172,8 @@ found in the LICENSE file.
       }
 
       if (navigator.getVRDisplays) {
+        frameData = new VRFrameData();
+
         navigator.getVRDisplays().then(function (displays) {
           if (displays.length > 0) {
             vrDisplay = displays[0];
@@ -237,7 +239,6 @@ found in the LICENSE file.
       window.addEventListener("resize", onResize, false);
       onResize();
 
-      var frameData = new VRFrameData();
       function onAnimationFrame (t) {
         stats.begin();
 

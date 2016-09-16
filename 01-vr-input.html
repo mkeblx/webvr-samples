@@ -68,6 +68,7 @@ found in the LICENSE file.
       "use strict";
 
       var vrDisplay = null;
+      var frameData = null;
       var projectionMat = mat4.create();
       var identityMat = mat4.create();
 
@@ -118,6 +119,11 @@ found in the LICENSE file.
       // it's a good idea to check that the API is available before attempting
       // to call it.
       if (navigator.getVRDisplays) {
+        // This object will be populated with the VRDisplay's pose and matricies
+        // every frame. We allocate it once here to avoid unnecessary garbage
+        // creation per frame.
+        frameData = new VRFrameData();
+
         navigator.getVRDisplays().then(function (displays) {
           // Use the first display in the array if one is available. If multiple
           // displays are present you may want to present the user with a way to
@@ -137,11 +143,6 @@ found in the LICENSE file.
       } else {
         VRSamplesUtil.addError("Your browser does not support WebVR. See <a href='http://webvr.info'>webvr.info</a> for assistance.");
       }
-
-      // This object will be populated with the VRDisplay's pose and matricies
-      // every frame. We allocate it once here to avoid unnecessary garbage
-      // creation per frame.
-      var frameData = new VRFrameData();
 
       // Main rendering loop
       function onAnimationFrame () {

@@ -159,7 +159,11 @@ found in the LICENSE file.
         }
       }
 
+      var frameData;
+
       if (navigator.getVRDisplays) {
+        frameData = new VRFrameData();
+
         navigator.getVRDisplays().then(function (displays) {
           if (displays.length > 0) {
             vrDisplay = displays[0];
@@ -258,7 +262,6 @@ found in the LICENSE file.
         stats.renderOrtho();
       }
 
-      var frameData = new VRFrameData();
       function onAnimationFrame (t) {
         stats.begin();
 
