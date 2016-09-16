@@ -3774,7 +3774,7 @@ module.exports = Emitter;
  */
 var Util = _dereq_('./util.js');
 var WebVRPolyfill = _dereq_('./webvr-polyfill.js').WebVRPolyfill;
-var WebVRSpecShim = _dereq_('./webvr-polyfill.js').WebVRSpecShim;
+var InstallWebVRSpecShim = _dereq_('./webvr-polyfill.js').InstallWebVRSpecShim;
 
 // Initialize a WebVRConfig just in case.
 window.WebVRConfig = Util.extend({
@@ -3837,7 +3837,7 @@ if (!window.WebVRConfig.DEFER_INITIALIZATION) {
   // InitializeWebVRPolyfill() will install the shim automatically when needed,
   // so this should rarely be used.
   window.InitializeSpecShim = function() {
-    new WebVRSpecShim();
+    InstallWebVRSpecShim();
   }
 }
 
@@ -5766,15 +5766,14 @@ function WebVRPolyfill() {
   if (!this.nativeLegacyWebVRAvailable) {
     if (!this.nativeWebVRAvailable) {
       this.enablePolyfill();
-    } else {
-      // Native implementation is available, but possibly not the 1.1 version
-      // of the spec. Put a shim in place to update the API if needed.
-      new WebVRSpecShim();
     }
     if (WebVRConfig.ENABLE_DEPRECATED_API) {
       this.enableDeprecatedPolyfill();
     }
   }
+
+  // Put a shim in place to update the API to 1.1 if needed.
+  InstallWebVRSpecShim();
 }
 
 WebVRPolyfill.prototype.isWebVRAvailable = function() {
@@ -5913,7 +5912,7 @@ WebVRPolyfill.prototype.isCardboardCompatible = function() {
 };
 
 // Installs a shim that updates a WebVR 1.0 spec implementation to WebVR 1.1
-function WebVRSpecShim() {
+function InstallWebVRSpecShim() {
   if ('VRDisplay' in window && !('VRFrameData' in window)) {
     // Provide the VRFrameData object.
     window.VRFrameData = VRFrameData;
@@ -5935,6 +5934,6 @@ function WebVRSpecShim() {
 };
 
 module.exports.WebVRPolyfill = WebVRPolyfill;
-module.exports.WebVRSpecShim = WebVRSpecShim;
+module.exports.InstallWebVRSpecShim = InstallWebVRSpecShim;
 
 },{"./base.js":2,"./cardboard-vr-display.js":5,"./display-wrappers.js":8,"./mouse-keyboard-vr-display.js":15,"./util.js":22}]},{},[13]);
