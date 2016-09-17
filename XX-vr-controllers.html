@@ -312,12 +312,12 @@ found in the LICENSE file.
               if (gamepad.pose)
                 vrGamepads.push(gamepad);
 
-              if ("haptics" in gamepad && gamepad.haptics.length > 0) {
+              if ("hapticActuators" in gamepad && gamepad.hapticActuators.length > 0) {
                 for (var j = 0; j < gamepad.buttons.length; ++j) {
                   if (gamepad.buttons[j].pressed) {
                     // Vibrate the gamepad using to the value of the button as
                     // the vibration intensity.
-                    gamepad.haptics[0].vibrate(gamepad.buttons[j].value, 100);
+                    gamepad.hapticActuators[0].pulse(gamepad.buttons[j].value, 100);
                     break;
                   }
                 }
