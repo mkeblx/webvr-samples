@@ -341,7 +341,7 @@ found in the LICENSE file.
             gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
             mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
             getStandingViewMatrix(viewMat, frameData.leftViewMatrix);
-            renderSceneView(projectionMat, viewMat, frameData.pose);
+            renderSceneView(projectionMat, viewMat, vrGamepads);
             stats.renderOrtho();
           }
         } else {
