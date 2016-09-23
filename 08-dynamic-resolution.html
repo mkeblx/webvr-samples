@@ -29,18 +29,8 @@ found in the LICENSE file.
         left: 0;
         margin: 0;
         position: absolute;
-
-        width: 100%;
-      }
-
-      #canvas-clip {
         top: 0;
-      }
-
-      /* Need to bottom align the canvas in the containing div so that we we
-      start resizing it the image will be properly framed. (WebGL is +Y up) */
-      #webgl-canvas {
-        bottom: 0;
+        width: 100%;
       }
 
       #canvas-clip.presenting {
@@ -169,6 +159,8 @@ found in the LICENSE file.
             canvasClip.classList.remove("presenting");
             canvasClip.style.width = "";
             canvasClip.style.height = "";
+            webglCanvas.style.width = "";
+            webglCanvas.style.height = "";
           }
         }
 
@@ -188,8 +180,8 @@ found in the LICENSE file.
               vrPresentButton = VRSamplesUtil.addButton("Enter VR", "E", "media/icons/cardboard64.png", onVRRequestPresent);
 
             window.addEventListener('vrdisplaypresentchange', onVRPresentChange, false);
-            window.addEventListener('vrdisplayactivate', onVRRequestPresent, false);
-            window.addEventListener('vrdisplaydeactivate', onVRExitPresent, false);
+            //window.addEventListener('vrdisplayactivate', onVRRequestPresent, false);
+            //window.addEventListener('vrdisplaydeactivate', onVRExitPresent, false);
 
             initWebGL(vrDisplay.capabilities.hasExternalDisplay);
           } else {
@@ -280,10 +272,10 @@ found in the LICENSE file.
 
             // Note that the viewports use the eyeWidth/height rather than the
             // canvas width and height.
-            gl.viewport(0, 0, eyeWidth, eyeHeight);
+            gl.viewport(0, webglCanvas.height-eyeHeight, eyeWidth, eyeHeight);
             cubeSea.render(frameData.leftProjectionMatrix, frameData.leftViewMatrix, stats);
 
-            gl.viewport(eyeHeight, 0, eyeHeight, eyeHeight);
+            gl.viewport(eyeWidth, webglCanvas.height-eyeHeight, eyeWidth, eyeHeight);
             cubeSea.render(frameData.rightProjectionMatrix, frameData.rightViewMatrix, stats);
 
             vrDisplay.submitFrame();
