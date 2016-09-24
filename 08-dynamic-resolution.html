@@ -180,8 +180,8 @@ found in the LICENSE file.
               vrPresentButton = VRSamplesUtil.addButton("Enter VR", "E", "media/icons/cardboard64.png", onVRRequestPresent);
 
             window.addEventListener('vrdisplaypresentchange', onVRPresentChange, false);
-            //window.addEventListener('vrdisplayactivate', onVRRequestPresent, false);
-            //window.addEventListener('vrdisplaydeactivate', onVRExitPresent, false);
+            window.addEventListener('vrdisplayactivate', onVRRequestPresent, false);
+            window.addEventListener('vrdisplaydeactivate', onVRExitPresent, false);
 
             initWebGL(vrDisplay.capabilities.hasExternalDisplay);
           } else {
