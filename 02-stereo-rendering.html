@@ -119,25 +119,6 @@ found in the LICENSE file.
         VRSamplesUtil.addError("Your browser does not support WebVR. See <a href='http://webvr.info'>webvr.info</a> for assistance.");
       }
 
-      // Renders the scene from the viewpoint of the given eye and pose.
-      function renderEyeView (projectionMatrix, viewMatrix) {
-        // Now that we're rendering for a specific eye, we need to use the FOV
-        // for that eye to generate the projection matrix. glMatrix has a
-        // function specifically for this, but if you're using a different
-        // library the algorithm needed is defined in the WebVR spec.
-        mat4.perspectiveFromFieldOfView(projectionMatrix, eye.fieldOfView, 0.1, 1024.0);
-
-        // Same matrix creation as last time, but done in an intermediate matrix
-        // so that it can be multiplied by the eye offset matrix.
-        mat4.fromRotationTranslation(viewMat, orientation, position);
-
-        // We need to translate the view matrix by the eye's offset in order to
-        // get the desired stereo effect.
-        mat4.translate(viewMat, viewMat, eye.offset);
-
-        mat4.invert(viewMat, viewMat);
-      }
-
       function onAnimationFrame (t) {
         window.requestAnimationFrame(onAnimationFrame);
 
