@@ -227,14 +227,19 @@ found in the LICENSE file.
           // even if one eye needs less resolution. You can render each eye at
           // the exact size it needs, but you'll need to adjust the viewports to
           // account for that.
-          webglCanvas.width = Math.max(leftEye.renderWidth, rightEye.renderWidth) * 2;
-          webglCanvas.height = Math.max(leftEye.renderHeight, rightEye.renderHeight);
+          //webglCanvas.width = Math.max(leftEye.renderWidth, rightEye.renderWidth) * 2;
+          //webglCanvas.height = Math.max(leftEye.renderHeight, rightEye.renderHeight);
         } else {
           // We only want to change the size of the canvas drawing buffer to
           // match the window dimensions when we're not presenting.
-          webglCanvas.width = webglCanvas.offsetWidth * window.devicePixelRatio;
-          webglCanvas.height = webglCanvas.offsetHeight * window.devicePixelRatio;
+          //webglCanvas.width = webglCanvas.offsetWidth * window.devicePixelRatio;
+          //webglCanvas.height = webglCanvas.offsetHeight * window.devicePixelRatio;
         }
+
+        // hardcoded, never changes
+        webglCanvas.width = 512 * 2;
+        webglCanvas.height = 512;
+
       }
       window.addEventListener("resize", onResize, false);
       onResize();
